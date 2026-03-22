@@ -90,24 +90,38 @@ body {
   display: grid;
   grid-template-columns: minmax(220px, 260px) 1fr;
   gap: 8px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .mixer-side {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   align-content: start;
 }
 
 .mixer-top {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 100%;
 }
 
 .mixer-top .control-group {
   margin-bottom: 4px;
+}
+
+.side-actions {
+  margin-top: auto;
+  width: 100%;
+  padding-top: 4px;
+}
+
+#copy-button {
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
 .control-group {
@@ -537,24 +551,5 @@ button {
 
   .mixer-side {
     order: -1;
-  }
-
-  .mixer-top {
-    grid-template-columns: 1fr 1fr;
-    align-items: end;
-  }
-
-  .knob-legend {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 860px) {
-  .mixer-top {
-    grid-template-columns: 1fr;
-  }
-
-  .knob-legend {
-    grid-template-columns: repeat(4, auto);
   }
 }

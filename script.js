@@ -84,7 +84,6 @@ const ui = {
   codeModal: document.getElementById("code-modal"),
   codeOutput: document.getElementById("code-output"),
   copyButton: document.getElementById("copy-button"),
-  logConfigButton: document.getElementById("log-config-button"),
   modalCloseButton: document.getElementById("modal-close-button"),
 };
 
@@ -250,29 +249,6 @@ function captureControlSnapshot() {
   });
 
   return snapshot;
-}
-
-function toPresetValuesLiteral(values) {
-  const lines = Object.entries(values).map(([key, value]) => {
-    const literal =
-      typeof value === "string" ? JSON.stringify(value) : String(value);
-    return `  ${key}: ${literal},`;
-  });
-
-  return `{\n${lines.join("\n")}\n}`;
-}
-
-function logCurrentPresetConfig() {
-  const values = captureControlSnapshot();
-  const currentPreset = controls.presetSelect
-    ? controls.presetSelect.value
-    : "custom";
-
-  console.log("[Turbulent Playground] Current input snapshot");
-  console.log("preset:", currentPreset);
-  console.log(values);
-  console.log("Paste-ready values block:");
-  console.log(toPresetValuesLiteral(values));
 }
 
 const BASE_PRESET_VALUES = Object.freeze(captureControlSnapshot());
@@ -1637,9 +1613,6 @@ controls.rotateDensity.addEventListener("input", () =>
 );
 
 ui.copyButton.addEventListener("click", copySnippet);
-if (ui.logConfigButton) {
-  ui.logConfigButton.addEventListener("click", logCurrentPresetConfig);
-}
 ui.modalCloseButton.addEventListener("click", closeCodeModal);
 ui.codeModal.addEventListener("click", handleCodeModalOutsideClick);
 
