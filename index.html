@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>readable-ish</title>
+    <meta
+      name="description"
+      content="A playground for fun text effects, like turbulent displacement."
+    />
+    <meta name="application-name" content="readable-ish" />
+    <meta name="theme-color" content="#191919" />
+    <meta property="og:title" content="readable-ish" />
+    <meta
+      property="og:description"
+      content="A playground for fun text effects, like turbulent displacement."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="readable-ish" />
+    <meta
+      name="twitter:description"
+      content="A playground for fun text effects, like turbulent displacement."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" aria-hidden="true" focusable="false">
+      <filter id="turbulence">
+        <feTurbulence
+          id="turbulence-node"
+          type="turbulence"
+          baseFrequency="0.002"
+          numOctaves="2"
+          result="turbulence"
+        />
+        <feDisplacementMap
+          id="displacement-node"
+          in2="turbulence"
+          in="SourceGraphic"
+          scale="20"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
+      </filter>
+    </svg>
+
+    <main class="app-shell">
+      <section class="preview-stage">
+        <span id="preview-translate-x" class="preview-motion-x">
+          <span id="preview-translate-y" class="preview-motion-y">
+            <span id="preview-rotate" class="preview-motion-rotate">
+              <span id="preview-text" class="distort">readable-ish</span>
+            </span>
+          </span>
+        </span>
+      </section>
+
+      <section class="controls-panel">
+        <div class="mixer-layout">
+          <aside class="mixer-side">
+            <div class="mixer-top">
+              <div class="control-group">
+                <label for="preset-select">Preset</label>
+                <select id="preset-select">
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="text-content">Display text</label>
+                <input id="text-content" type="text" value="readable-ish" />
+              </div>
+
+              <div class="control-group">
+                <label for="font-family">Typeface</label>
+                <select id="font-family">
+                  <option value="Times New Roman, serif">
+                    Times New Roman
+                  </option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="Courier New, monospace">Courier New</option>
+                  <option value="Impact, sans-serif">Impact</option>
+                  <option value="Comic Sans MS, cursive">Comic Sans MS</option>
+                  <option value="system-ui, sans-serif">System UI</option>
+                </select>
+              </div>
+
+              <div class="knob-legend" aria-hidden="true">
+                <span class="legend-item legend-duration">Duration</span>
+                <span class="legend-item legend-volatility">Volatility</span>
+                <span class="legend-item legend-density">Density</span>
+              </div>
+
+              <p>
+                <button id="copy-button" type="button">Copy code</button>
+                <button id="log-config-button" type="button">
+                  Log preset config
+                </button>
+              </p>
+            </div>
+          </aside>
+
+          <div class="channel-grid">
+            <section class="channel channel-text">
+              <h3>T</h3>
+              <div class="control-group">
+                <label for="text-size" class="sr-only">Text size</label>
+                <input
+                  id="text-size"
+                  class="channel-fader fader-text"
+                  type="range"
+                  min="24"
+                  max="220"
+                  value="70"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-text-size"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="text-size-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-text-size"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle text size animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="text-size-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="text-size-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="text-size-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="text-size-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="text-size-density" class="sr-only">Density</label>
+                  <input
+                    id="text-size-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-frequency">
+              <h3>F</h3>
+              <div class="control-group">
+                <label for="base-frequency" class="sr-only"
+                  >Noise frequency</label
+                >
+                <input
+                  id="base-frequency"
+                  class="channel-fader fader-frequency"
+                  type="range"
+                  min="0.0001"
+                  max="0.03"
+                  value="0.003"
+                  step="0.0001"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-base-frequency"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="base-frequency-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-base-frequency"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle frequency animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="base-frequency-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="base-frequency-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="base-frequency-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="base-frequency-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="base-frequency-density" class="sr-only"
+                    >Density</label
+                  >
+                  <input
+                    id="base-frequency-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-octaves">
+              <h3>L</h3>
+              <div class="control-group">
+                <label for="num-octaves" class="sr-only"
+                  >Number of octaves</label
+                >
+                <input
+                  id="num-octaves"
+                  class="channel-fader fader-octaves"
+                  type="range"
+                  min="1"
+                  max="8"
+                  value="1"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-num-octaves"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="num-octaves-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-num-octaves"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle octaves animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="num-octaves-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="num-octaves-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="num-octaves-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="num-octaves-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="num-octaves-density" class="sr-only"
+                    >Density</label
+                  >
+                  <input
+                    id="num-octaves-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-scale">
+              <h3>D</h3>
+              <div class="control-group">
+                <label for="scale" class="sr-only">Displacement scale</label>
+                <input
+                  id="scale"
+                  class="channel-fader fader-scale"
+                  type="range"
+                  min="0"
+                  max="220"
+                  value="30"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input id="animate-scale" type="checkbox" class="state-input" />
+                <input id="scale-animation-type" type="hidden" value="wiggle" />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-scale"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle scale animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="scale-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="scale-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="scale-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="scale-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="scale-density" class="sr-only">Density</label>
+                  <input
+                    id="scale-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-translate-x">
+              <h3>X</h3>
+              <div class="control-group">
+                <label for="translate-x" class="sr-only"
+                  >Translate on X axis</label
+                >
+                <input
+                  id="translate-x"
+                  class="channel-fader fader-translate-x"
+                  type="range"
+                  min="-320"
+                  max="320"
+                  value="0"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-translate-x"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="translate-x-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-translate-x"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle translate X animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="translate-x-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="translate-x-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="translate-x-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="translate-x-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="translate-x-density" class="sr-only"
+                    >Density</label
+                  >
+                  <input
+                    id="translate-x-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-translate-y">
+              <h3>Y</h3>
+              <div class="control-group">
+                <label for="translate-y" class="sr-only"
+                  >Translate on Y axis</label
+                >
+                <input
+                  id="translate-y"
+                  class="channel-fader fader-translate-y"
+                  type="range"
+                  min="-320"
+                  max="320"
+                  value="0"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-translate-y"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="translate-y-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-translate-y"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle translate Y animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="translate-y-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="translate-y-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="translate-y-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="translate-y-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="translate-y-density" class="sr-only"
+                    >Density</label
+                  >
+                  <input
+                    id="translate-y-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="channel channel-rotate">
+              <h3>R</h3>
+              <div class="control-group">
+                <label for="rotate" class="sr-only">Rotate</label>
+                <input
+                  id="rotate"
+                  class="channel-fader fader-rotate"
+                  type="range"
+                  min="-180"
+                  max="180"
+                  value="0"
+                  step="1"
+                />
+              </div>
+              <div class="channel-meta">
+                <input
+                  id="animate-rotate"
+                  type="checkbox"
+                  class="state-input"
+                />
+                <input
+                  id="rotate-animation-type"
+                  type="hidden"
+                  value="wiggle"
+                />
+                <div class="channel-switches">
+                  <button
+                    id="animate-btn-rotate"
+                    type="button"
+                    class="icon-toggle"
+                    aria-label="Cycle rotate animation state"
+                    aria-pressed="false"
+                    title="Cycle: off, wiggle, jitter"
+                  >
+                    ⏻
+                  </button>
+                </div>
+              </div>
+              <div class="anim-column">
+                <div class="control-group">
+                  <label for="rotate-animation-duration" class="sr-only"
+                    >Duration</label
+                  >
+                  <input
+                    id="rotate-animation-duration"
+                    type="range"
+                    min="0.5"
+                    max="20"
+                    value="5"
+                    step="0.1"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="rotate-volatility" class="sr-only"
+                    >Volatility</label
+                  >
+                  <input
+                    id="rotate-volatility"
+                    type="range"
+                    min="0"
+                    max="1"
+                    value="0.35"
+                    step="0.01"
+                  />
+                </div>
+                <div class="control-group">
+                  <label for="rotate-density" class="sr-only">Density</label>
+                  <input
+                    id="rotate-density"
+                    type="range"
+                    min="2"
+                    max="16"
+                    value="5"
+                    step="1"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="code-modal">
+      <button
+        id="modal-close-button"
+        class="modal-close"
+        type="button"
+        aria-label="Close"
+      >
+        X
+      </button>
+      <h2>Code copied</h2>
+      <pre><code id="code-output"></code></pre>
+    </dialog>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
