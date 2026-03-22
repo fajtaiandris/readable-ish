@@ -9,9 +9,9 @@
   --muted: #b7afa2;
   --danger: #d96a6a;
   --value: #f28a5b;
-  --duration: #d38a52;
-  --volatility: #e28fbe;
-  --density: #8e73d9;
+  --duration: #f2a93b;
+  --volatility: #ff6fb1;
+  --density: #b084ff;
   --translate-x: #d07a5f;
   --translate-y: #82bd71;
   --rotate: #d3ac67;
@@ -20,6 +20,10 @@
   --channel-octaves: #6ea85f;
   --channel-scale: #5f8ecf;
   --channel-motion: #3f3f3f;
+  --switch-wiggle: #61e9ff;
+  --switch-wiggle-bg: #15333a;
+  --switch-jitter: #ffd56a;
+  --switch-jitter-bg: #3d3116;
 }
 
 *,
@@ -30,7 +34,10 @@
 
 body {
   margin: 0;
-  padding: 10px;
+  padding: 10px 10px 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   font:
     13px/1.35 "Avenir Next",
     "Segoe UI",
@@ -206,14 +213,19 @@ select {
 
 .icon-toggle {
   min-height: 30px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid #5b5b5b;
   border-radius: 0;
-  background: #1f1f1f;
-  color: var(--muted);
+  background: #1e1e1e;
+  color: #9f9f9f;
   font: inherit;
   font-size: 0.95rem;
   padding: 0 8px;
   cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .icon-toggle {
@@ -224,11 +236,24 @@ select {
   place-items: center;
 }
 
-.icon-toggle.is-active {
-  color: #ffd4d4;
-  border-color: #e36d6d;
-  background: #4a2020;
-  box-shadow: 0 0 0 1px rgba(227, 109, 109, 0.28);
+.icon-toggle[data-mode="off"] {
+  color: #9f9f9f;
+  border-color: #5b5b5b;
+  background: #1e1e1e;
+}
+
+.icon-toggle.is-active[data-mode="wiggle"] {
+  color: var(--switch-wiggle);
+  border-color: var(--switch-wiggle);
+  background: var(--switch-wiggle-bg);
+  box-shadow: 0 0 0 1px rgba(97, 233, 255, 0.22);
+}
+
+.icon-toggle.is-active[data-mode="jitter"] {
+  color: var(--switch-jitter);
+  border-color: var(--switch-jitter);
+  background: var(--switch-jitter-bg);
+  box-shadow: 0 0 0 1px rgba(255, 213, 106, 0.2);
 }
 
 .knob-legend {
@@ -542,6 +567,20 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.app-footer {
+  width: min(1120px, 100%);
+  margin: auto auto 0;
+  padding: 6px 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 @media (max-width: 680px) {

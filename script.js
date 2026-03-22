@@ -233,7 +233,18 @@ const TRANSFORM_VARIABLE_KEYS = ["translateX", "translateY", "rotate"];
 const PRESET_CONTROL_KEYS = Object.keys(controls).filter(
   (key) => key !== "presetSelect",
 );
+const PRESET_FADER_KEYS = [
+  "textSize",
+  "baseFrequency",
+  "numOctaves",
+  "scale",
+  "translateX",
+  "translateY",
+  "rotate",
+];
+const PRESET_FADER_KEY_SET = new Set(PRESET_FADER_KEYS);
 let isApplyingPreset = false;
+let presetFaderAnimationFrame = null;
 
 function captureControlSnapshot() {
   const snapshot = {};
@@ -890,21 +901,113 @@ function handleManualControlMutation() {
   setPresetToCustom();
 }
 
+function stopPresetFaderAnimation() {
+  if (!presetFaderAnimationFrame) {
+    return;
+  }
+
+  window.cancelAnimationFrame(presetFaderAnimationFrame);
+  presetFaderAnimationFrame = null;
+}
+
+function setRangeControlValue(control, numericValue) {
+  if (!control) {
+    return;
+  }
+
+  const { min, max, step, decimals } = getRangeConfig(control);
+  const quantized = quantizeToStep(numericValue, min, max, step, decimals);
+  const nextValue =
+    decimals > 0 ? quantized.toFixed(decimals) : String(Math.round(quantized));
+
+  control.value = nextValue;
+}
+
+function animatePresetFaders(values, onComplete) {
+  const descriptors = PRESET_FADER_KEYS.map((key) => {
+    const control = controls[key];
+    const target = Number.parseFloat(String(values[key]));
+    const start = Number.parseFloat(control?.value ?? "0");
+
+    if (!control || !Number.isFinite(target) || !Number.isFinite(start)) {
+      return null;
+    }
+
+    return { control, start, target };
+  }).filter(Boolean);
+
+  const reduceMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (descriptors.length === 0 || reduceMotion) {
+    descriptors.forEach((item) => {
+      setRangeControlValue(item.control, item.target);
+    });
+    render();
+    if (typeof onComplete === "function") {
+      onComplete();
+    }
+    return;
+  }
+
+  stopPresetFaderAnimation();
+
+  const startTime = performance.now();
+  const durationMs = 360;
+  const easeOutCubic = (t) => 1 - (1 - t) ** 3;
+
+  const tick = (now) => {
+    const progress = clamp((now - startTime) / durationMs, 0, 1);
+    const eased = easeOutCubic(progress);
+
+    descriptors.forEach((item) => {
+      const next = item.start + (item.target - item.start) * eased;
+      setRangeControlValue(item.control, next);
+    });
+
+    render();
+
+    if (progress < 1) {
+      presetFaderAnimationFrame = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    presetFaderAnimationFrame = null;
+    if (typeof onComplete === "function") {
+      onComplete();
+    }
+  };
+
+  presetFaderAnimationFrame = window.requestAnimationFrame(tick);
+}
+
 function applyPreset(presetId) {
   const preset = PRESETS[presetId];
   if (!preset) {
     return;
   }
 
+  stopPresetFaderAnimation();
+
   const values = { ...BASE_PRESET_VALUES, ...preset.values };
   isApplyingPreset = true;
   PRESET_CONTROL_KEYS.forEach((key) => {
+    if (PRESET_FADER_KEY_SET.has(key)) {
+      return;
+    }
     setControlElementValue(controls[key], values[key]);
   });
-  isApplyingPreset = false;
 
   syncAllChannelIconControls();
-  regenerateAllAnimationValues();
+  regenerateAllAnimationValues(false);
+  animatePresetFaders(values, () => {
+    PRESET_FADER_KEYS.forEach((key) => {
+      setControlElementValue(controls[key], values[key]);
+    });
+    render();
+    isApplyingPreset = false;
+  });
 }
 
 function populatePresetSelect() {
@@ -916,7 +1019,7 @@ function populatePresetSelect() {
 
   const customOption = document.createElement("option");
   customOption.value = "custom";
-  customOption.textContent = "Custom";
+  customOption.textContent = "custom";
   controls.presetSelect.appendChild(customOption);
 
   Object.entries(PRESETS).forEach(([presetId, preset]) => {
@@ -1084,7 +1187,7 @@ function regenerateAnimationValue(variableKey) {
   render();
 }
 
-function regenerateAllAnimationValues() {
+function regenerateAllAnimationValues(shouldRender = true) {
   const state = getState();
 
   Object.keys(VARIABLE_META).forEach((variableKey) => {
@@ -1092,7 +1195,9 @@ function regenerateAllAnimationValues() {
     animationSeeds[variableKey] = generateAnimationSeed(animationState.density);
   });
 
-  render();
+  if (shouldRender) {
+    render();
+  }
 }
 
 function clearGeneratedSvgAnimations() {
