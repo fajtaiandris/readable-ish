@@ -75,6 +75,7 @@ const controls = {
 };
 
 const ui = {
+  previewStage: document.querySelector(".preview-stage"),
   previewTranslateX: document.getElementById("preview-translate-x"),
   previewTranslateY: document.getElementById("preview-translate-y"),
   previewRotate: document.getElementById("preview-rotate"),
@@ -84,12 +85,15 @@ const ui = {
   codeModal: document.getElementById("code-modal"),
   codeOutput: document.getElementById("code-output"),
   copyButton: document.getElementById("copy-button"),
+  exportSvgButton: document.getElementById("export-svg-button"),
+  exportPngButton: document.getElementById("export-png-button"),
   modalCloseButton: document.getElementById("modal-close-button"),
 };
 
 let latestSnippet = "";
 let textSizeAnimation = null;
 let textSizeAnimationKey = "";
+const turbulenceSeed = 48291;
 const transformAnimationState = {
   translateX: { animation: null, key: "" },
   translateY: { animation: null, key: "" },
@@ -269,6 +273,7 @@ const PRESETS = Object.freeze({
     label: "readable-ish",
     values: {
       ...BASE_PRESET_VALUES,
+      fontFamily: "Georgia, serif",
       animateTextSize: true,
       textSizeAnimationType: "jitter",
       textSizeAnimationDuration: "6.3",
@@ -545,6 +550,14 @@ function escapeHtmlContent(text) {
     .replaceAll(">", "&gt;");
 }
 
+function escapeXmlAttribute(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 function getStepDecimals(stepText) {
   if (!stepText || stepText === "any") {
     return 0;
@@ -556,6 +569,26 @@ function getStepDecimals(stepText) {
 
   const dotIndex = stepText.indexOf(".");
   return dotIndex === -1 ? 0 : stepText.length - dotIndex - 1;
+}
+
+function hashString32(value) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function createSeededRandom(seed) {
+  let state = (seed >>> 0) || 1;
+
+  return () => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
 }
 
 function getRangeConfig(input) {
@@ -1168,12 +1201,14 @@ function getAnimationSequence(variableKey, state) {
   return [base, ...middle, base];
 }
 
-function generateAnimationSeed(density) {
+function generateAnimationSeed(variableKey, density, volatility) {
   const count = Math.max(2, density);
+  const seedSource = `${variableKey}|${density}|${Number(volatility).toFixed(4)}`;
+  const random = createSeededRandom(hashString32(seedSource));
   const seed = [];
 
   for (let i = 1; i < count; i += 1) {
-    seed.push(Math.random() * 2 - 1);
+    seed.push(random() * 2 - 1);
   }
 
   return seed;
@@ -1182,7 +1217,11 @@ function generateAnimationSeed(density) {
 function regenerateAnimationValue(variableKey) {
   const state = getState();
   const animationState = state.animations[variableKey];
-  animationSeeds[variableKey] = generateAnimationSeed(animationState.density);
+  animationSeeds[variableKey] = generateAnimationSeed(
+    variableKey,
+    animationState.density,
+    animationState.volatility,
+  );
 
   render();
 }
@@ -1192,7 +1231,11 @@ function regenerateAllAnimationValues(shouldRender = true) {
 
   Object.keys(VARIABLE_META).forEach((variableKey) => {
     const animationState = state.animations[variableKey];
-    animationSeeds[variableKey] = generateAnimationSeed(animationState.density);
+    animationSeeds[variableKey] = generateAnimationSeed(
+      variableKey,
+      animationState.density,
+      animationState.volatility,
+    );
   });
 
   if (shouldRender) {
@@ -1553,6 +1596,7 @@ function render() {
   ui.previewText.textContent = state.textContent;
   ui.previewText.style.fontFamily = state.fontFamily;
 
+  ui.turbulenceNode.setAttribute("seed", String(turbulenceSeed));
   ui.turbulenceNode.setAttribute(
     "baseFrequency",
     formatFrequency(state.baseFrequency),
@@ -1637,6 +1681,197 @@ function copySnippet() {
   copyToClipboard(text).catch(() => {});
 }
 
+function getExportDimensions() {
+  const stageRect = ui.previewStage?.getBoundingClientRect();
+  const width = stageRect ? Math.max(320, Math.round(stageRect.width)) : 960;
+  const height = stageRect ? Math.max(180, Math.round(stageRect.height)) : 240;
+
+  return { width, height };
+}
+
+function buildStaticSvgExport(state) {
+  const { width, height } = getExportDimensions();
+  const baseFrequency =
+    ui.turbulenceNode.getAttribute("baseFrequency") ||
+    formatFrequency(state.baseFrequency);
+  const numOctaves =
+    ui.turbulenceNode.getAttribute("numOctaves") || String(state.numOctaves);
+  const scale =
+    ui.displacementNode.getAttribute("scale") || String(state.scale);
+  const seed =
+    ui.turbulenceNode.getAttribute("seed") || String(turbulenceSeed);
+  const safeText = escapeHtmlContent(state.textContent);
+  const safeFontFamily = escapeXmlAttribute(state.fontFamily);
+  const textTransformX = escapeXmlAttribute(
+    formatTransform("translateX", state.translateX),
+  );
+  const textTransformY = escapeXmlAttribute(
+    formatTransform("translateY", state.translateY),
+  );
+  const textTransformR = escapeXmlAttribute(formatTransform("rotate", state.rotate));
+
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+    `  <defs>`,
+    `    <filter id="turbulence">`,
+    `      <feTurbulence type="turbulence" seed="${seed}" baseFrequency="${baseFrequency}" numOctaves="${numOctaves}" result="turbulence" />`,
+    `      <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="${scale}" xChannelSelector="R" yChannelSelector="G" />`,
+    `    </filter>`,
+    `  </defs>`,
+    `  <foreignObject x="0" y="0" width="${width}" height="${height}">`,
+    `    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">`,
+    `      <span style="display:inline-block;transform:${textTransformX};">`,
+    `        <span style="display:inline-block;transform:${textTransformY};">`,
+    `          <span style="display:inline-block;transform:${textTransformR};">`,
+    `            <span style="display:inline-block;max-width:100%;white-space:pre-wrap;word-break:break-word;text-align:center;line-height:0.95;font-family:${safeFontFamily};font-size:${state.textSize}px;color:#000;filter:url(#turbulence);">${safeText}</span>`,
+    `          </span>`,
+    `        </span>`,
+    `      </span>`,
+    `    </div>`,
+    `  </foreignObject>`,
+    `</svg>`,
+  ].join("\n");
+}
+
+function downloadBlobFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function exportCurrentOutputAsSvg() {
+  const state = getState();
+  const svgMarkup = buildStaticSvgExport(state);
+  const blob = new Blob([svgMarkup], {
+    type: "image/svg+xml;charset=utf-8",
+  });
+  const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+  downloadBlobFile(blob, `readable-ish-${stamp}.svg`);
+}
+
+function buildRasterSvgForPng(state) {
+  const { width, height } = getExportDimensions();
+  const centerX = width / 2 + state.translateX;
+  const centerY = height / 2 + state.translateY;
+  const baseFrequency =
+    ui.turbulenceNode.getAttribute("baseFrequency") ||
+    formatFrequency(state.baseFrequency);
+  const numOctaves =
+    ui.turbulenceNode.getAttribute("numOctaves") || String(state.numOctaves);
+  const scale =
+    ui.displacementNode.getAttribute("scale") || String(state.scale);
+  const seed =
+    ui.turbulenceNode.getAttribute("seed") || String(turbulenceSeed);
+  const lines = state.textContent.split(/\r?\n/);
+  const safeLines = lines.map((line) => escapeHtmlContent(line));
+  const lineHeight = Math.max(1, Math.round(state.textSize * 0.95));
+  const firstLineOffset = ((safeLines.length - 1) * lineHeight) / 2;
+  const textPayload =
+    safeLines.length <= 1
+      ? safeLines[0] || " "
+      : safeLines
+          .map((line, index) => {
+            const dy = index === 0 ? -firstLineOffset : lineHeight;
+            const textValue = line.length > 0 ? line : " ";
+            return `<tspan x="0" dy="${dy}">${textValue}</tspan>`;
+          })
+          .join("");
+  const safeFontFamily = escapeXmlAttribute(state.fontFamily);
+
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+    `  <defs>`,
+    `    <filter id="turbulence" x="-50%" y="-50%" width="200%" height="200%">`,
+    `      <feTurbulence type="turbulence" seed="${seed}" baseFrequency="${baseFrequency}" numOctaves="${numOctaves}" result="turbulence" />`,
+    `      <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="${scale}" xChannelSelector="R" yChannelSelector="G" />`,
+    `    </filter>`,
+    `  </defs>`,
+    `  <g transform="translate(${centerX.toFixed(2)} ${centerY.toFixed(2)}) rotate(${state.rotate})">`,
+    `    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle" font-family="${safeFontFamily}" font-size="${state.textSize}" fill="#000" filter="url(#turbulence)">${textPayload}</text>`,
+    `  </g>`,
+    `</svg>`,
+  ].join("\n");
+}
+
+function loadImageFromSvgMarkup(svgMarkup) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+
+    image.onload = () => {
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      reject(new Error("Failed to load raster source SVG."));
+    };
+
+    image.src = dataUrl;
+  });
+}
+
+async function renderSvgMarkupToPngBlob(svgMarkup, width, height) {
+  const image = await loadImageFromSvgMarkup(svgMarkup);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Canvas 2D context is unavailable.");
+  }
+
+  context.clearRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const pngBlob = await new Promise((resolve, reject) => {
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("PNG export returned an empty blob."));
+          return;
+        }
+        resolve(blob);
+      }, "image/png");
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+  return pngBlob;
+}
+
+async function exportCurrentOutputAsPng() {
+  const state = getState();
+  const { width, height } = getExportDimensions();
+
+  try {
+    let pngBlob;
+    try {
+      pngBlob = await renderSvgMarkupToPngBlob(
+        buildStaticSvgExport(state),
+        width,
+        height,
+      );
+    } catch {
+      pngBlob = await renderSvgMarkupToPngBlob(
+        buildRasterSvgForPng(state),
+        width,
+        height,
+      );
+    }
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+    downloadBlobFile(pngBlob, `readable-ish-${stamp}.png`);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 controls.textContent.addEventListener("input", render);
 controls.fontFamily.addEventListener("change", render);
 controls.textSize.addEventListener("input", render);
@@ -1718,6 +1953,14 @@ controls.rotateDensity.addEventListener("input", () =>
 );
 
 ui.copyButton.addEventListener("click", copySnippet);
+if (ui.exportSvgButton) {
+  ui.exportSvgButton.addEventListener("click", exportCurrentOutputAsSvg);
+}
+if (ui.exportPngButton) {
+  ui.exportPngButton.addEventListener("click", () => {
+    exportCurrentOutputAsPng();
+  });
+}
 ui.modalCloseButton.addEventListener("click", closeCodeModal);
 ui.codeModal.addEventListener("click", handleCodeModalOutsideClick);
 
