@@ -1,12 +1,12 @@
 :root {
-  --bg: #191919;
-  --panel: #242424;
-  --panel-soft: #5c5b5b;
-  --preview: #313131;
-  --line: #3b3b3b;
-  --line-strong: #4a4a4a;
-  --text: #ece8df;
-  --muted: #b7afa2;
+  --bg: #e6e6e6;
+  --panel: #bebebe;
+  --panel-soft: #dfdfdf;
+  --preview: #ffffff;
+  --line: #000000;
+  --line-strong: #000000;
+  --text: #000000;
+  --muted: #2f2f2f;
   --danger: #d96a6a;
   --value: #f28a5b;
   --duration: #f2a93b;
@@ -15,11 +15,11 @@
   --translate-x: #d07a5f;
   --translate-y: #82bd71;
   --rotate: #d3ac67;
-  --channel-text: #8d8d8d;
-  --channel-frequency: #c45858;
-  --channel-octaves: #6ea85f;
-  --channel-scale: #5f8ecf;
-  --channel-motion: #3f3f3f;
+  --channel-text: #8b8b8b;
+  --channel-frequency: #ff0000;
+  --channel-octaves: #29ce00;
+  --channel-scale: #006aff;
+  --channel-motion: #956943;
   --switch-wiggle: #61e9ff;
   --switch-wiggle-bg: #15333a;
   --switch-jitter: #ffd56a;
@@ -131,6 +131,7 @@ body {
   display: block;
   width: 100%;
   text-align: center;
+  background: var(--panel-soft);
 }
 
 .control-group {
@@ -262,7 +263,9 @@ select {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 20px 10px 10px 10px;
+  padding: 10px 10px 10px 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
 }
 
 .legend-item {
@@ -270,7 +273,7 @@ select {
   align-items: center;
   gap: 5px;
   font-size: 0.68rem;
-  color: var(--muted);
+  color: var(--text);
   white-space: nowrap;
 }
 
@@ -278,7 +281,8 @@ select {
   content: "";
   width: 8px;
   height: 8px;
-  border-radius: 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
 }
 
 .legend-base::before {
@@ -432,7 +436,7 @@ select {
   width: 36px;
   height: 36px;
   border: 2px solid var(--knob-color);
-  border-radius: 0;
+  border-radius: 100px;
   padding: 0;
   position: relative;
   background: #222;
